@@ -7,6 +7,7 @@ public record Progress
     public string SolvedPortion { get; private set; }
     public string[] SpotExceptions { get; set; }
     public bool ConfirmedDuplicates { get; private set; }
+    public bool Solved { get; private set; }
 
     public Progress(int wordSize = 5)
     {
@@ -29,20 +30,28 @@ public record Progress
     public void ParseProgress(string guess, string result)
     {
         if (guess == null) throw new ArgumentNullException(nameof(guess));
+
+        //if word is solved, we can skip most of this
+        if (!result.Contains("X") && !result.Contains("Y"))
+        {
+            Solved = true;
+            return;
+        }
+
         for (var i = 0; i < result.Length; i++)
         {
             //either the letter is not in the word, or it is, but all instances are accounted for
             if (result[i] == 'X')
             {
-                    //just add it to the SpotExceptions
-                    SpotExceptions[i] += guess[i];
+                //just add it to the SpotExceptions
+                SpotExceptions[i] += guess[i];
                 //check if the letter has already been confirmed in the word
                 if (!ConfirmedInWord.Contains(guess[i]))
                 {
                     //wait until the last instance of the letter before making the call
                     if (i == result.Length - 1 || !guess.Substring(i + 1).Contains(guess[i]))
                     {
-                        DeconfirmedLetters += guess[i]; 
+                        DeconfirmedLetters += guess[i];
                     }
                 }
             }
@@ -71,13 +80,13 @@ public record Progress
                         SolvedPortion += solvedCopy[j];
                     }
                 }
-                
+
                 if (!ConfirmedInWord.Contains(guess[i]))
                 {
                     ConfirmedInWord += guess[i];
                 }
             }
-            
+
             //rules for confirming duplicates
             if (!ConfirmedDuplicates)
             {

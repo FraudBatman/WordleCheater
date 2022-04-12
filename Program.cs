@@ -138,7 +138,7 @@ public static class Program
 
         for (var guessNum = 1; guessNum <= maxGuesses; guessNum++)
         {
-            var guess = guessNum == 1 ? FirstGuess : GuessWord(progresses[0]);
+            var guess = guessNum == 1 ? FirstGuess : GuessWord(progresses);
 
             guesses.Add(guess);
 
@@ -168,10 +168,10 @@ public static class Program
                         break;
                     }
                 }
-            } while (result == null || !cleanResult);
+            } while (result == null || !cleanResult || result.Length != WordSize);
 
             results.Add(result);
-            if (result == "GGGGG")
+            if (!result.Contains("X") && !result.Contains("Y"))
             {
                 //WINNER IS YOU
                 Console.Clear();
@@ -193,123 +193,124 @@ public static class Program
         Console.ReadLine();
     }
 
-    private static void CheatTest(string wordSet, int runs = -1)
-    {
-        _words = GetWordList(wordSet);
-        Console.WriteLine("Generating opening set...");
-        var openingSet = new Dictionary<string, string?>();
-
-        //this is built for 5 letter words i'm doing it in a terrible manner
-        var resultOptions = "XYG";
-
-        foreach (var t in resultOptions)
+    /* TESTING/ANALYSIS
+        private static void CheatTest(string wordSet, int runs = -1)
         {
-            foreach (var t1 in resultOptions)
+            _words = GetWordList(wordSet);
+            Console.WriteLine("Generating opening set...");
+            var openingSet = new Dictionary<string, string?>();
+
+            //this is built for 5 letter words i'm doing it in a terrible manner
+            var resultOptions = "XYG";
+
+            foreach (var t in resultOptions)
             {
-                //oh no
-                foreach (var t2 in resultOptions)
+                foreach (var t1 in resultOptions)
                 {
-                    //oh god
-                    foreach (var t3 in resultOptions)
+                    //oh no
+                    foreach (var t2 in resultOptions)
                     {
-                        //im gonna be sick
-                        foreach (var t4 in resultOptions)
+                        //oh god
+                        foreach (var t3 in resultOptions)
                         {
-                            var testResult = t.ToString()
-                                             + t1.ToString()
-                                             + t2.ToString()
-                                             + t3.ToString()
-                                             + t4.ToString();
-                            Console.WriteLine(testResult);
-                            var proggers = new Progress();
-                            proggers.ParseProgress(FirstGuess, testResult);
-                            openingSet.Add(testResult, GuessWord(proggers));
+                            //im gonna be sick
+                            foreach (var t4 in resultOptions)
+                            {
+                                var testResult = t.ToString()
+                                                 + t1.ToString()
+                                                 + t2.ToString()
+                                                 + t3.ToString()
+                                                 + t4.ToString();
+                                Console.WriteLine(testResult);
+                                var proggers = new Progress();
+                                proggers.ParseProgress(FirstGuess, testResult);
+                                openingSet.Add(testResult, GuessWord(proggers));
+                            }
                         }
                     }
                 }
             }
-        }
 
-        //well that was bad.
-        //lets move on and pretend that didn't happen
-        string[] testWords;
-        if (runs == -1)
-        {
-            //we're doing every word
-            testWords = new string[_words.Count];
-            for (var i = 0; i < testWords.Length; i++)
+            //well that was bad.
+            //lets move on and pretend that didn't happen
+            string[] testWords;
+            if (runs == -1)
             {
-                testWords[i] = _words[i];
-            }
-        }
-        else
-        {
-            //we're doing a random sample of words
-            testWords = new string[runs];
-            for (var i = 0; i < testWords.Length; i++)
-            {
-                testWords[i] = GetRandomWord();
-            }
-        }
-        var guesses = new int[testWords.Length];
-
-
-        var fails = 0;
-
-        for (var i = 0; i < testWords.Length; i++)
-        {
-            Console.Clear();
-            Console.WriteLine(i);
-            guesses[i] = CheatTestLoop(testWords[i], openingSet);
-            if (guesses[i] > 6)
-            {
-                fails++;
-            }
-        }
-        Console.WriteLine($"Average guesses over {testWords.Length} games: {guesses.Average()}");
-        Console.WriteLine($"Cheater lost {fails} time(s)");
-    }
-
-    private static int CheatTestLoop(string targetWord, Dictionary<string, string?> openingSet)
-    {
-        var progress = new Progress();
-        Console.WriteLine($"Target Word: {targetWord}");
-
-        var guess = FirstGuess;
-
-        Console.WriteLine($"Guess: {guess}");
-
-        var guesses = 1;
-        while (guess != targetWord)
-        {
-            var result = GetGuessResult(guess, targetWord);
-            progress.ParseProgress(guess, result);
-
-            //dictionary skip
-            guess = guesses == 1 ? openingSet[result] : GuessWord(progress);
-
-
-            if (guess != null)
-            {
-                Console.WriteLine($"Guess: {guess}");
+                //we're doing every word
+                testWords = new string[_words.Count];
+                for (var i = 0; i < testWords.Length; i++)
+                {
+                    testWords[i] = _words[i];
+                }
             }
             else
             {
-                throw new Exception($"Word {targetWord} caused the guesser to fail.");
+                //we're doing a random sample of words
+                testWords = new string[runs];
+                for (var i = 0; i < testWords.Length; i++)
+                {
+                    testWords[i] = GetRandomWord();
+                }
+            }
+            var guesses = new int[testWords.Length];
+
+
+            var fails = 0;
+
+            for (var i = 0; i < testWords.Length; i++)
+            {
+                Console.Clear();
+                Console.WriteLine(i);
+                guesses[i] = CheatTestLoop(testWords[i], openingSet);
+                if (guesses[i] > 6)
+                {
+                    fails++;
+                }
+            }
+            Console.WriteLine($"Average guesses over {testWords.Length} games: {guesses.Average()}");
+            Console.WriteLine($"Cheater lost {fails} time(s)");
+        }
+
+        private static int CheatTestLoop(string targetWord, Dictionary<string, string?> openingSet)
+        {
+            var progress = new Progress();
+            Console.WriteLine($"Target Word: {targetWord}");
+
+            var guess = FirstGuess;
+
+            Console.WriteLine($"Guess: {guess}");
+
+            var guesses = 1;
+            while (guess != targetWord)
+            {
+                var result = GetGuessResult(guess, targetWord);
+                progress.ParseProgress(guess, result);
+
+                //dictionary skip
+                guess = guesses == 1 ? openingSet[result] : GuessWord(progress);
+
+
+                if (guess != null)
+                {
+                    Console.WriteLine($"Guess: {guess}");
+                }
+                else
+                {
+                    throw new Exception($"Word {targetWord} caused the guesser to fail.");
+                }
+
+                guesses++;
+            }
+            Console.WriteLine($"Guessed in {guesses} guesses");
+            if (guesses > 6)
+            {
+                Console.WriteLine("FAILURE");
             }
 
-            guesses++;
+            Console.WriteLine();
+            return guesses;
         }
-        Console.WriteLine($"Guessed in {guesses} guesses");
-        if (guesses > 6)
-        {
-            Console.WriteLine("FAILURE");
-        }
-
-        Console.WriteLine();
-        return guesses;
-    }
-
+    */
     private static string GetGuessResult(string guess, string targetWord)
     {
         var returnString = "";
@@ -372,10 +373,20 @@ public static class Program
         return returnString;
     }
 
-    private static string? GuessWord(Progress progress)
+    private static string? GuessWord(Progress[] progress)
     {
         Console.Write("Guessing word.");
-        var smallWordsList = ShrinkWordsLists(progress);
+
+        var unsolvedWords = new List<int>();
+        var smallWordLists = new List<List<string>>();
+        for (int i = 0; i < progress.Length; i++)
+        {
+            if (!progress[i].Solved)
+            {
+                unsolvedWords.Add(i);
+                smallWordLists.Add(ShrinkWordsLists(progress[i]));
+            }
+        }
 
         // create 2d dictionary
         // index: letter position
@@ -394,7 +405,7 @@ public static class Program
         {
             //get the letterIndex-th letter of every word
             var thLetter = "";
-            foreach (var smallWord in smallWordsList)
+            foreach (var smallWord in smallWordLists[0])
             {
                 thLetter += smallWord[letterIndex];
             }
@@ -419,9 +430,9 @@ public static class Program
 
         //remove spot exceptions (where a letter has appeared yellow)
         Console.Write(".");
-        for (var i = 0; i < progress.SpotExceptions.Length; i++)
+        for (var i = 0; i < progress[0].SpotExceptions.Length; i++)
         {
-            foreach (var letter in progress.SpotExceptions[i])
+            foreach (var letter in progress[0].SpotExceptions[i])
             {
                 var alphaIndex = AlphabetString.IndexOf(letter);
                 letterMatrix[i].Remove(alphaIndex);
@@ -430,13 +441,13 @@ public static class Program
 
         //overwrite any letters that have been solved
         Console.Write(".");
-        for (var i = 0; i < progress.SolvedPortion.Length; i++)
+        for (var i = 0; i < progress[0].SolvedPortion.Length; i++)
         {
-            if (AlphabetString.Contains(progress.SolvedPortion[i]))
+            if (AlphabetString.Contains(progress[0].SolvedPortion[i]))
             {
                 //this needs to add the alphabet index
                 letterMatrix[i].Clear();
-                letterMatrix[i].Add(AlphabetString.IndexOf(progress.SolvedPortion[i]), 1);
+                letterMatrix[i].Add(AlphabetString.IndexOf(progress[0].SolvedPortion[i]), 1);
             }
         }
 
@@ -471,7 +482,7 @@ public static class Program
 
         //new method: for every word in small list, find indices in sorted lists, pick word with lowest value (closest to criteria)
         //significantly faster for slower methods, slightly slower for most common (still too fast to really notice casually)
-        foreach (var smallWord in smallWordsList)
+        foreach (var smallWord in smallWordLists[0])
         {
             var currentWordScore = 0;
             for (var i = 0; i < sortedLists.Length; i++)
@@ -489,7 +500,7 @@ public static class Program
             }
 
             //dupes clause (to avoid dupes first)
-            if (HasDuplicates(smallWord) && !progress.ConfirmedDuplicates)
+            if (HasDuplicates(smallWord) && !progress[0].ConfirmedDuplicates)
             {
                 currentWordScore *= DupesPenalty;
             }
