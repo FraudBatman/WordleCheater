@@ -147,9 +147,9 @@ public static class Program
 
         for (var guessNum = 1; guessNum <= maxGuesses; guessNum++)
         {
-            // var guess = guessNum == 1 ? FirstGuess : GuessWord(progresses);
+            var guess = guessNum == 1 ? FirstGuess : GuessWord(progresses);
 
-            var guess = GuessWord(progresses);
+            // var guess = GuessWord(progresses);
 
             guesses.Add(guess);
 
