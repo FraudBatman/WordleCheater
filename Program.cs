@@ -159,17 +159,20 @@ public static class Program
                 Console.ReadLine();
                 return;
             }
-
+            if (wordleCount == 1)
+            {
+                Console.WriteLine($"Words remaining: {ShrinkWordsLists(progresses[0]).Count}");
+            }
             Console.WriteLine($"Guess #{guessNum}:\t{guess}");
-            Console.Write("Result:\t\t");
 
             string? result;
             var cleanResult = true;
             do
             {
+                Console.Write("Result:\t\t");
                 result = Console.ReadLine()?.ToUpperInvariant().Trim().Substring(0, WordSize);
 
-                if (result == null) continue;
+                if (result == "") continue;
 
                 foreach (var character in result)
                 {
@@ -179,7 +182,7 @@ public static class Program
                         break;
                     }
                 }
-            } while (result == null || !cleanResult || result.Length != WordSize);
+            } while (result == "" || !cleanResult || result.Length != WordSize);
 
             results.Add(result);
             if (!result.Contains("X") && !result.Contains("Y"))
@@ -212,7 +215,8 @@ public static class Program
         var dumProg = new Progress[1];
         dumProg[0] = new Progress();
 
-        FirstGuess = GuessWord(dumProg);
+        // FirstGuess = GuessWord(dumProg);
+        FirstGuess = BestFirstGuess;
 
         if (FirstGuess == null)
         {
