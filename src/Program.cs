@@ -30,6 +30,8 @@
 //MostAverage (2.2, MULCH):                 4.81293 (729)
 //LeastCommon (2.2, JUMPY):                 5.34527 (1601)
 
+using WordleCheater.Algorithms;
+
 namespace WordleCheater;
 
 internal enum MenuOption
@@ -47,26 +49,27 @@ internal enum MenuOption
 
 public static class Program
 {
-    private const string AlphabetString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private const int DupesPenalty = 6;
+    public const string AlphabetString = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private const string FiveLettWordList = "5LetterWords.txt";
     private const string BestFirstGuess = "CRATE";
     private const string OfficialWordList = "OfficialList.txt";
-    private const int WordSize = 5;
+    public const int WordSize = 5;
 
-    private static List<string> _words = new List<string>();
+    public static List<string> _words = new List<string>();
     private static readonly Random Random = new Random();
 
     private static string? FirstGuess; //used for batch testing
 
+    private static Algorithm algorithm = new LeastCommon();
+
     public static void Main()
     {
         // //Single word testing
-        // Words = GetWordList(FiveLettWordList);
+        // var Words = GetWordList(FiveLettWordList);
         // CheatTestLoop("SOLVE");
 
         // // Batch list testing
-        // CheatTest(OfficialWordList);
+        // CheatTest(FiveLettWordList);
         // Console.ReadLine();
 
         do
@@ -101,7 +104,7 @@ public static class Program
                     break;
                 default:
                     Console.Clear();
-                    Console.WriteLine("Nope this isn't a thing yet");
+                    Console.WriteLine("Nope this isn't a thing");
                     Console.WriteLine("Press ENTER to continue...");
                     Console.ReadLine();
                     break;
@@ -120,10 +123,10 @@ public static class Program
             Console.WriteLine("0)\tExit");
             Console.WriteLine("1)\tOfficial Wordle");
             Console.WriteLine("2)\tUnofficial Wordle\t(1 word - 6 guesses)");
-            Console.WriteLine("3)\tDordle\t\t\t(2 - 7)");
-            Console.WriteLine("4)\tQuordle\t\t\t(4 - 9)");
-            Console.WriteLine("5)\tOctordle\t\t(8 - 13)");
-            Console.WriteLine("6)\tSedordle\t\t(16 - 21)");
+            // Console.WriteLine("3)\tDordle\t\t\t(2 - 7)");
+            // Console.WriteLine("4)\tQuordle\t\t\t(4 - 9)");
+            // Console.WriteLine("5)\tOctordle\t\t(8 - 13)");
+            // Console.WriteLine("6)\tSedordle\t\t(16 - 21)");
             Console.WriteLine("7)\tTest Cheater\t\tOfficial Set");
             Console.WriteLine("8)\tTest Cheater\t\tUnofficial Set");
             Console.Write("\nMake a selection: ");
@@ -136,18 +139,13 @@ public static class Program
     private static void Cheater(int wordleCount, int maxGuesses)
     {
         Console.Clear();
-        var progresses = new Progress[wordleCount];
+        var progress = new Progress();
         var results = new List<string>();
         var guesses = new List<string?>();
 
-        for (var i = 0; i < wordleCount; i++)
-        {
-            progresses[i] = new Progress();
-        }
-
         for (var guessNum = 1; guessNum <= maxGuesses; guessNum++)
         {
-            var guess = guessNum == 1 ? BestFirstGuess : GuessWord(progresses);
+            var guess = guessNum == 1 ? BestFirstGuess : GuessWord(progress);
 
             // var guess = GuessWord(progresses);
 
@@ -161,7 +159,7 @@ public static class Program
             }
             if (wordleCount == 1)
             {
-                Console.WriteLine($"Words remaining: {ShrinkWordsLists(progresses[0]).Count}");
+                Console.WriteLine($"Words remaining: {ShrinkWordsLists(progress).Count}");
             }
             Console.WriteLine($"Guess #{guessNum}:\t{guess}");
 
@@ -200,7 +198,7 @@ public static class Program
                 Console.ReadLine();
                 return;
             }
-            progresses[0].ParseProgress(guess, result);
+            progress.ParseProgress(guess, result);
             Console.WriteLine();
         }
         Console.WriteLine("Oof!");
@@ -247,9 +245,8 @@ public static class Program
                                              + t3.ToString()
                                              + t4.ToString();
                             Console.WriteLine(testResult);
-                            var proggers = new Progress[1];
-                            proggers[0] = new Progress();
-                            proggers[0].ParseProgress(FirstGuess, testResult);
+                            var proggers = new Progress();
+                            proggers.ParseProgress(FirstGuess, testResult);
                             openingSet.Add(testResult, GuessWord(proggers));
                         }
                     }
@@ -300,8 +297,7 @@ public static class Program
 
     private static int CheatTestLoop(string targetWord, Dictionary<string, string?> openingSet)
     {
-        var progress = new Progress[1];
-        progress[0] = new Progress();
+        var progress = new Progress();
         Console.WriteLine($"Target Word: {targetWord}");
 
         var guess = FirstGuess;
@@ -312,7 +308,7 @@ public static class Program
         while (guess != targetWord)
         {
             var result = GetGuessResult(guess, targetWord);
-            progress[0].ParseProgress(guess, result);
+            progress.ParseProgress(guess, result);
 
             //dictionary skip
             guess = guesses == 1 ? openingSet[result] : GuessWord(progress);
@@ -390,7 +386,7 @@ public static class Program
                 //     break;
                 // }
 
-                returnString += (itsY ? "Y" : "X");
+                returnString += itsY ? "Y" : "X";
             }
             else
             {
@@ -401,154 +397,9 @@ public static class Program
         return returnString;
     }
 
-    private static string? GuessWord(Progress[] progress)
+    private static string? GuessWord(Progress progress)
     {
-        Console.Write("Guessing word.");
-
-        var unsolvedWords = new List<int>();
-        var smallWordLists = new List<List<string>>();
-        for (int i = 0; i < progress.Length; i++)
-        {
-            if (!progress[i].Solved)
-            {
-                unsolvedWords.Add(i);
-                smallWordLists.Add(ShrinkWordsLists(progress[i]));
-            }
-        }
-
-        if (smallWordLists.Count == 0)
-        {
-            //the puzzle is solved?
-            //what are you doing here?
-            return null;
-        }
-
-        // create 2d dictionary
-        // index: letter position
-        // key: index of letter in alphabet
-        // value: commonality of letter
-        var letterMatrix = new Dictionary<int, double>[WordSize];
-
-        for (var i = 0; i < WordSize; i++)
-        {
-            letterMatrix[i] = new Dictionary<int, double>();
-        }
-
-        //determine the commonality of letters in each spot in the word
-        Console.Write(".");
-        for (var letterIndex = 0; letterIndex < WordSize; letterIndex++)
-        {
-            //get the letterIndex-th letter of every word
-            var thLetter = "";
-            foreach (var smallWord in smallWordLists[0])
-            {
-                thLetter += smallWord[letterIndex];
-            }
-
-            //get the commonalities of each letter and write it to the array
-            for (var i = 0; i < AlphabetString.Length; i++)
-            {
-                var count = thLetter.Count(x => (x == AlphabetString[i]));
-                var com = (double)count / thLetter.Length;
-                letterMatrix[letterIndex].Add(i, com);
-            }
-        }
-
-        //remove entries where letters never occur
-        Console.Write(".");
-        for (var i = 0; i < letterMatrix.Length; i++)
-        {
-            letterMatrix[i] = letterMatrix[i]
-                .Where(kv => kv.Value != 0)
-                .ToDictionary(kv => kv.Key, kv => kv.Value);
-        }
-
-        //remove spot exceptions (where a letter has appeared yellow)
-        Console.Write(".");
-        for (var i = 0; i < progress[0].SpotExceptions.Length; i++)
-        {
-            foreach (var letter in progress[0].SpotExceptions[i])
-            {
-                var alphaIndex = AlphabetString.IndexOf(letter);
-                letterMatrix[i].Remove(alphaIndex);
-            }
-        }
-
-        //overwrite any letters that have been solved
-        Console.Write(".");
-        for (var i = 0; i < progress[0].SolvedPortion.Length; i++)
-        {
-            if (AlphabetString.Contains(progress[0].SolvedPortion[i]))
-            {
-                //this needs to add the alphabet index
-                letterMatrix[i].Clear();
-                letterMatrix[i].Add(AlphabetString.IndexOf(progress[0].SolvedPortion[i]), 1);
-            }
-        }
-
-        Console.Write(".");
-
-        //sort letters according to each strategy
-        var sortedLists = new List<KeyValuePair<int, double>>[WordSize];
-
-        // //MOST AVERAGE LETTERS FIRST
-        // for (int i = 0; i < WordSize; i++)
-        // {
-        //     var sortedList = from entry in letterMatrix[i] orderby Math.Abs(entry.Value - (letterMatrix[i].Values.Average())) ascending select entry;
-        //     sortedLists[i] = (sortedList.ToList());
-        // }
-
-        //MOST COMMON LETTERS FIRST
-        for (var i = 0; i < WordSize; i++)
-        {
-            var sortedList = from entry in letterMatrix[i] orderby entry.Value descending select entry;
-            sortedLists[i] = (sortedList.ToList());
-        }
-
-        // //LEAST COMMON LETTERS FIRST
-        // for (int i = 0; i < WordSize; i++)
-        // {
-        //     var sortedList = from entry in letterMatrix[i] orderby entry.Value ascending select entry;
-        //     sortedLists[i] = (sortedList.ToList());
-        // }
-
-        string? word = null;
-        var wordGolfScore = Int32.MaxValue;
-
-        //new method: for every word in small list, find indices in sorted lists, pick word with lowest value (closest to criteria)
-        //significantly faster for slower methods, slightly slower for most common (still too fast to really notice casually)
-        foreach (var smallWord in smallWordLists[0])
-        {
-            var currentWordScore = 0;
-            for (var i = 0; i < sortedLists.Length; i++)
-            {
-                foreach (var list in sortedLists)
-                {
-                    foreach (var kv in list)
-                    {
-                        if (kv.Key == AlphabetString.IndexOf(smallWord[i]))
-                        {
-                            currentWordScore += list.IndexOf(kv);
-                        }
-                    }
-                }
-            }
-
-            //dupes clause (to avoid dupes first)
-            if (HasDuplicates(smallWord) && !progress[0].ConfirmedDuplicates)
-            {
-                currentWordScore *= DupesPenalty;
-            }
-
-            if (currentWordScore < wordGolfScore)
-            {
-                word = smallWord;
-                wordGolfScore = currentWordScore;
-            }
-
-        }
-        Console.WriteLine("!");
-        return word;
+        return algorithm.Guess(progress);
     }
 
     private static string GetRandomWord()
@@ -579,52 +430,9 @@ public static class Program
         return returnList;
     }
 
-    private static bool HasDuplicates(string word)
-    {
-        for (var i = 0; i < word.Length - 1; i++)
-        {
-            for (var j = i + 1; j < word.Length; j++)
-            {
-                if (word[i] == word[j])
-                    return true;
-            }
-        }
-
-        return false;
-    }
-
     private static List<string> ShrinkWordsLists(Progress prog)
     {
-        var returnList = new List<string>(_words);
-        //remove any words that don't have all confirmed letters
-        foreach (var letter in prog.ConfirmedInWord)
-        {
-            returnList.RemoveAll(s => !s.Contains(letter));
-        }
-        //remove any words that have any letters that are confirmed not to be there
-        foreach (var letter in prog.DeconfirmedLetters)
-        {
-            returnList.RemoveAll(s => s.Contains(letter));
-        }
-        //remove any words that have letters where they aren't supposed to be
-        for (var i = 0; i < prog.SpotExceptions.Length; i++)
-        {
-            returnList.RemoveAll(s => prog.SpotExceptions[i].Contains(s[i]));
-        }
-        //remove any words that don't have letters where they are supposed to be
-        for (var i = 0; i < prog.SolvedPortion.Length; i++)
-        {
-            if (prog.SolvedPortion[i] != ' ')
-            {
-                returnList.RemoveAll(s => s[i] != prog.SolvedPortion[i]);
-            }
-        }
-        //if a word definitely has duplicates, get rid of words that don't have duplicates
-        if (prog.ConfirmedDuplicates)
-        {
-            returnList.RemoveAll(s => !HasDuplicates(s));
-        }
-        return returnList;
+        throw new Exception("wrong ShrinkWordsLists(), dumbass.");
     }
 
 }
